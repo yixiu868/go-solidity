@@ -1,9 +1,12 @@
 package main
 
-import "github.com/yixiu868/go-solidity/gobase/task1"
+import (
+	"github.com/yixiu868/go-solidity/gobase/task2/lock"
+	"time"
+)
 
 func main() {
-	for i := range task1.Merge([][]int{{1, 3}, {2, 6}, {8, 10}, {15, 18}}) {
-		print(i)
-	}
+	lock.AtomicQ2()
+
+	time.Sleep(10 * time.Second)
 }
