@@ -3,7 +3,7 @@ package sqlx
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"github.com/yixiu868/go-solidity/gobase/task3/sqlx/utils"
+	"github.com/yixiu868/go-solidity/pkg/gobase/task3/sqlx/utils"
 	"log"
 )
 
