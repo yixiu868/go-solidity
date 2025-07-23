@@ -37,6 +37,12 @@ func (r *postRepository) FindByUserId(ctx context.Context, userId uint) ([]model
 	return posts, err
 }
 
+// 评论数最多的帖子
 func (r *postRepository) FindMostCommentPost(ctx context.Context) (*model.Post, error) {
-	return nil, nil
+	var post model.Post
+	tx := r.db.Model(&model.Post{}).Where("id = (?)", r.db.Model(&model.Comment{}).Select("post_id").Group("post_id").Order("count(1) desc").Limit(1)).First(&post)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return &post, nil
 }

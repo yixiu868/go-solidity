@@ -14,5 +14,5 @@ type User struct {
 	Birthday     *time.Time
 	MemberNumber sql.NullString
 	ActivatedAt  sql.NullTime
-	Posts        []Post
+	Posts        []Post `gorm:"foreignKey:UserID"`
 }

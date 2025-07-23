@@ -1,23 +1,30 @@
 package main
 
-import "github.com/yixiu868/go-solidity/pkg/gobase/task3/gorm"
+import (
+	"context"
+	"github.com/yixiu868/go-solidity/configs"
+	"github.com/yixiu868/go-solidity/internal/model"
+	"github.com/yixiu868/go-solidity/internal/repository"
+	"github.com/yixiu868/go-solidity/pkg/gobase/db"
+	"path/filepath"
+)
 
 func main() {
-	//configPath := filepath.Join(".", "configs", "development.yaml") // 假设工作目录是项目根目录
-	//// 加载配置文件
-	//config, err := configs.LoadConfig(configPath)
-	//if err != nil {
-	//	panic(err)
-	//}
+	configPath := filepath.Join(".", "configs", "development.yaml") // 假设工作目录是项目根目录
+	// 加载配置文件
+	config, err := configs.LoadConfig(configPath)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.InitDB(config)
+	if err != nil {
+		panic(err)
+	}
+
+	defer db.CloseDB()
 	//
-	//err = db.InitDB(config)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//defer db.CloseDB()
-	//
-	//commentRepo := repository.NewCommentRepository(db.DB)
+	commentRepo := repository.NewCommentRepository(db.DB)
 	//postRepo := repository.NewPostRepository(db.DB)
 	//userRepo := repository.NewUserRepository(db.DB)
 	//
@@ -26,7 +33,7 @@ func main() {
 	//postRepo.AutoMigrate()
 	//userRepo.AutoMigrate()
 	//
-	//ctx := context.Background()
+	ctx := context.Background()
 
 	// 新增user
 	//email := "lisi@163.com"
@@ -46,10 +53,10 @@ func main() {
 	//
 	//userRepo.Create(ctx, &user1)
 
-	// 新增post
+	//// 新增post
 	//post1 := model.Post{
-	//	Title:  "任逍遥",
-	//	Body:   "沧海一声笑",
+	//	Title:  "活着",
+	//	Body:   "靠活着活着的作者",
 	//	Author: "lisi",
 	//	UserID: 2,
 	//}
@@ -66,11 +73,32 @@ func main() {
 	//	PostID:  1,
 	//}
 	//commentRepo.Create(ctx, &comment2)
-	//comment3 := model.Comment{
-	//	Content: "任逍遥，听出逍遥自在的感觉",
-	//	PostID:  3,
-	//}
-	//commentRepo.Create(ctx, &comment3)
+	comment3 := model.Comment{
+		Content: "活着写的感人",
+		PostID:  8,
+	}
+	commentRepo.Create(ctx, &comment3)
 
-	gorm.AssociationSearch()
+	db.DB.Model(&model.Comment{}).Delete(&comment3)
+
+	//users, err := userRepo.FindInfoByUsername(context.Background(), 2)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//users_bytes, err := json.Marshal(users)
+	//fmt.Println(string(users_bytes))
+	//
+	//users2, err := userRepo.FindInfoByUsername(context.Background(), 1)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//users_bytes2, err := json.Marshal(users2)
+	//fmt.Println(string(users_bytes2))
+
+	//post, err := postRepo.FindMostCommentPost(context.Background())
+	//if err != nil {
+	//	panic(err)
+	//}
+	//marshal, err := json.Marshal(post)
+	//fmt.Println(string(marshal))
 }
