@@ -8,3 +8,14 @@ database:
     charset: utf8mb4
     parseTime: true
     loc: Local
+
+database2:
+  mysql:
+    host: localhost
+    port: 3306
+    username: root
+    password: 123456
+    dbname: blogdb
+    charset: utf8mb4
+    parseTime: true
+    loc: Local

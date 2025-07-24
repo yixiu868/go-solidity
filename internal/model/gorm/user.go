@@ -1,4 +1,4 @@
-package model
+package gorm
 
 import (
 	"database/sql"
@@ -14,5 +14,5 @@ type User struct {
 	Birthday     *time.Time
 	MemberNumber sql.NullString
 	ActivatedAt  sql.NullTime
-	Posts        []Post `gorm:"foreignKey:UserID"`
+	Posts        []Post
 }

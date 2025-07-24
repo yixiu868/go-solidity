@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"github.com/yixiu868/go-solidity/configs"
-	"github.com/yixiu868/go-solidity/internal/model"
-	"github.com/yixiu868/go-solidity/internal/repository"
+	"github.com/yixiu868/go-solidity/internal/model/gorm"
+	gorm2 "github.com/yixiu868/go-solidity/internal/repository/gorm"
 	"github.com/yixiu868/go-solidity/pkg/gobase/db"
 	"path/filepath"
 )
@@ -24,7 +24,7 @@ func main() {
 
 	defer db.CloseDB()
 	//
-	commentRepo := repository.NewCommentRepository(db.DB)
+	commentRepo := gorm2.NewCommentRepository(db.DB)
 	//postRepo := repository.NewPostRepository(db.DB)
 	//userRepo := repository.NewUserRepository(db.DB)
 	//
@@ -73,13 +73,13 @@ func main() {
 	//	PostID:  1,
 	//}
 	//commentRepo.Create(ctx, &comment2)
-	comment3 := model.Comment{
+	comment3 := gorm.Comment{
 		Content: "活着写的感人",
 		PostID:  8,
 	}
 	commentRepo.Create(ctx, &comment3)
 
-	db.DB.Model(&model.Comment{}).Delete(&comment3)
+	db.DB.Model(&gorm.Comment{}).Delete(&comment3)
 
 	//users, err := userRepo.FindInfoByUsername(context.Background(), 2)
 	//if err != nil {

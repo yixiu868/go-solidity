@@ -1,14 +1,14 @@
-package repository
+package gorm
 
 import (
 	"context"
-	"github.com/yixiu868/go-solidity/internal/model"
+	gorm2 "github.com/yixiu868/go-solidity/internal/model/gorm"
 	"gorm.io/gorm"
 )
 
 type CommentRepository interface {
 	AutoMigrate() error
-	Create(ctx context.Context, comment *model.Comment) error
+	Create(ctx context.Context, comment *gorm2.Comment) error
 }
 
 type commentRepository struct {
@@ -23,10 +23,10 @@ func NewCommentRepository(db *gorm.DB) CommentRepository {
 
 // 迁移schema
 func (r *commentRepository) AutoMigrate() error {
-	return r.db.AutoMigrate(&model.Comment{})
+	return r.db.AutoMigrate(&gorm2.Comment{})
 }
 
 // 新增
-func (r *commentRepository) Create(ctx context.Context, comment *model.Comment) error {
+func (r *commentRepository) Create(ctx context.Context, comment *gorm2.Comment) error {
 	return r.db.Create(comment).Error
 }

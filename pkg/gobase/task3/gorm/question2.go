@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/yixiu868/go-solidity/configs"
-	"github.com/yixiu868/go-solidity/internal/repository"
+	"github.com/yixiu868/go-solidity/internal/repository/gorm"
 	"github.com/yixiu868/go-solidity/pkg/gobase/db"
 	"path/filepath"
 )
@@ -24,7 +24,7 @@ func init() {
 }
 
 func AssociationSearch() {
-	post_repo := repository.NewPostRepository(db.DB)
+	post_repo := gorm.NewPostRepository(db.DB)
 	posts, err := post_repo.FindByUserId(context.Background(), 1)
 	if err != nil {
 		panic(err)
