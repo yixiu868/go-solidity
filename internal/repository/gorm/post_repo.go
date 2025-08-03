@@ -18,7 +18,9 @@ type postRepository struct {
 }
 
 func NewPostRepository(db *gorm.DB) PostRepository {
-	return &postRepository{db: db}
+	return &postRepository{
+		db: db,
+	}
 }
 
 // 迁移schema

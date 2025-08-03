@@ -8,3 +8,7 @@ type User struct {
 	Password string `gorm:"not null"`
 	Email    string `gorm:"unique;not null"`
 }
+
+func (User) TableName() string {
+	return "users"
+}

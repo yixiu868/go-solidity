@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+var JWTKey = []byte("oIft1b5qZjyLcc0zZo2UrUx5rk3KE0LvZKv73fw502oXd6vfYu1OAQvbSel8whvm")
+
 func main() {
 	// 初始化数据库连接池
 	configPath := filepath.Join(".", "configs", "development.yaml") // 假设工作目录是项目根目录
@@ -23,14 +25,35 @@ func main() {
 	db.InitDB2(config2)
 
 	// 程序退出关闭数据库连接池
-	db.CloseDB2()
+	defer db.CloseDB2()
 
 	router := gin.Default()
+
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
+
+	// 注册
+	router.POST("/register", Register)
+
+	// 登录
+	router.POST("/login", Login)
+
+	// 创建文章
+	router.POST("/createArticle", func(c *gin.Context) {})
+
+	// 更新文章
+	router.POST("/updateArticle/", func(c *gin.Context) {})
+
+	// 删除文章
+	router.POST("/deleteArticle/", func(c *gin.Context) {})
+
+	// 创建评论
+
+	//
+
 	router.Run()
 }
 
@@ -83,10 +106,13 @@ func Login(c *gin.Context) {
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	_, err := token.SignedString([]byte("your_secret_key"))
+	tokenStr, err := token.SignedString([]byte(JWTKey))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
-	// 剩下的逻辑...
+	c.Header("x-jwt-token", tokenStr)
+	c.JSON(http.StatusOK, gin.H{
+		"success": "Login successfully",
+	})
 }
