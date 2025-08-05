@@ -61,6 +61,23 @@ func (c *Comment) TableName() string {
 	return "comment"
 }
 
+func (c *Comment) AfterCreate(tx *gorm.DB) error {
+	var commentCount int64
+	if err := tx.Model(&Comment{}).
+		Where("post_id = ? AND deleted_at IS NULL", c.PostID).
+		Count(&commentCount).Error; err != nil {
+		return err
+	}
+
+	if commentCount > 0 {
+		return tx.Model(&Post{}).
+			Where("id = ? and comment_status <> '有评论'", c.PostID).
+			Update("comment_status", "有评论").
+			Error
+	}
+	return nil
+}
+
 func (c *Comment) AfterDelete(tx *gorm.DB) error {
 	// 1. 查询当前文章的剩余有效评论数（排除已软删除的评论）
 	var commentCount int64
