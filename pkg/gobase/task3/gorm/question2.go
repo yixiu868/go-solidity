@@ -1,10 +1,7 @@
-package gorm
+package main
 
 import (
-	"context"
-	"fmt"
 	"github.com/yixiu868/go-solidity/configs"
-	"github.com/yixiu868/go-solidity/internal/repository/gorm"
 	"github.com/yixiu868/go-solidity/pkg/gobase/db"
 	"path/filepath"
 )
@@ -23,13 +20,24 @@ func init() {
 	}
 }
 
-func AssociationSearch() {
-	post_repo := gorm.NewPostRepository(db.DB)
-	posts, err := post_repo.FindByUserId(context.Background(), 1)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(posts)
-
-	defer db.CloseDB()
-}
+//func main() {
+//	posts, err := repo.GetUserPostsWithAllComments(db.DB, 2)
+//	if err != nil {
+//		panic(err)
+//	}
+//	postsJSON, err := json.Marshal(posts)
+//	if err != nil {
+//		panic(err)
+//	}
+//	fmt.Println(string(postsJSON))
+//
+//	posts, err = repo.GetMostCommentPost(db.DB)
+//	if err != nil {
+//		panic(err)
+//	}
+//	postsJSON, err = json.Marshal(posts)
+//	if err != nil {
+//		panic(err)
+//	}
+//	fmt.Println(string(postsJSON))
+//}

@@ -1,8 +1,8 @@
-package gorm
+package main
 
 import (
 	"github.com/yixiu868/go-solidity/configs"
-	"github.com/yixiu868/go-solidity/internal/repository/gorm"
+	"github.com/yixiu868/go-solidity/internal/repo"
 	"github.com/yixiu868/go-solidity/pkg/gobase/db"
 	"path/filepath"
 )
@@ -22,9 +22,10 @@ func init() {
 }
 
 func Migrate() {
-	gorm.NewCommentRepository(db.DB).AutoMigrate()
-	gorm.NewPostRepository(db.DB).AutoMigrate()
-	gorm.NewUserRepository(db.DB).AutoMigrate()
-
+	repo.AutoMigrate(db.DB)
 	defer db.CloseDB()
 }
+
+//func main() {
+//	Migrate()
+//}

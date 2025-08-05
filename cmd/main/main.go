@@ -1,39 +1,30 @@
 package main
 
-import (
-	"context"
-	"github.com/yixiu868/go-solidity/configs"
-	"github.com/yixiu868/go-solidity/internal/model/gorm"
-	gorm2 "github.com/yixiu868/go-solidity/internal/repository/gorm"
-	"github.com/yixiu868/go-solidity/pkg/gobase/db"
-	"path/filepath"
-)
-
 func main() {
-	configPath := filepath.Join(".", "configs", "development.yaml") // 假设工作目录是项目根目录
-	// 加载配置文件
-	config, err := configs.LoadConfig(configPath)
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.InitDB(config)
-	if err != nil {
-		panic(err)
-	}
-
-	defer db.CloseDB()
+	//configPath := filepath.Join(".", "configs", "development.yaml") // 假设工作目录是项目根目录
+	//// 加载配置文件
+	//config, err := configs.LoadConfig(configPath)
+	//if err != nil {
+	//	panic(err)
+	//}
 	//
-	commentRepo := gorm2.NewCommentRepository(db.DB)
-	//postRepo := repository.NewPostRepository(db.DB)
-	//userRepo := repository.NewUserRepository(db.DB)
+	//err = db.InitDB(config)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//defer db.CloseDB()
+	////
+	//commentRepo := gorm2.NewCommentRepository(db.DB)
+	//postRepo := repo.NewPostRepository(db.DB)
+	//userRepo := repo.NewUserRepository(db.DB)
 	//
 	//// 迁移schema
 	//commentRepo.AutoMigrate()
 	//postRepo.AutoMigrate()
 	//userRepo.AutoMigrate()
 	//
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	// 新增user
 	//email := "lisi@163.com"
@@ -73,13 +64,13 @@ func main() {
 	//	PostID:  1,
 	//}
 	//commentRepo.Create(ctx, &comment2)
-	comment3 := gorm.Comment{
-		Content: "活着写的感人",
-		PostID:  8,
-	}
-	commentRepo.Create(ctx, &comment3)
-
-	db.DB.Model(&gorm.Comment{}).Delete(&comment3)
+	//comment3 := gorm.Comment{
+	//	Content: "活着写的感人",
+	//	PostID:  8,
+	//}
+	//commentRepo.Create(ctx, &comment3)
+	//
+	//db.DB.Model(&gorm.Comment{}).Delete(&comment3)
 
 	//users, err := userRepo.FindInfoByUsername(context.Background(), 2)
 	//if err != nil {
