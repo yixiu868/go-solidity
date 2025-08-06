@@ -49,16 +49,36 @@ func main() {
 	// 登录
 	router.POST("/login", Login)
 
-	// 创建文章
-	router.POST("/createArticle", func(c *gin.Context) {})
+	// 路由组
+	protected := router.Group("/api")
+	protected.Use(JWTMiddleware())
+	{
+		// 创建文章
+		protected.POST("/createArticle", func(c *gin.Context) {
+			var post model.Post
+			if err := c.ShouldBindJSON(&post); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 
-	// 更新文章
-	router.POST("/updateArticle/", func(c *gin.Context) {})
+			post.UserID = c.GetUint("userID")
 
-	// 删除文章
-	router.POST("/deleteArticle/", func(c *gin.Context) {})
+			tx := db.DB.Create(&post)
+			if tx.Error != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"message": "文章创建成功"})
+		})
 
-	// 创建评论
+		// 更新文章
+		protected.POST("/updateArticle/", func(c *gin.Context) {})
+
+		// 删除文章
+		protected.POST("/deleteArticle/", func(c *gin.Context) {})
+
+		// 创建评论
+	}
 
 	//
 
@@ -112,7 +132,7 @@ func Login(c *gin.Context) {
 		UserID:   storedUser.ID,
 		Username: storedUser.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * time.Duration(1))),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "auth-service",
@@ -136,7 +156,7 @@ func Login(c *gin.Context) {
 // 验证JWT令牌
 func validateToken(tokenString string) (*Claims, error) {
 	// 解析token
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return JWTKey, nil
 	})
 
