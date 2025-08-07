@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -8,6 +9,7 @@ import (
 	"github.com/yixiu868/go-solidity/internal/model"
 	"github.com/yixiu868/go-solidity/pkg/gobase/db"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -49,20 +51,138 @@ func main() {
 	// 登录
 	router.POST("/login", Login)
 
-	// 创建文章
-	router.POST("/createArticle", func(c *gin.Context) {})
+	protected := router.Group("/api")
+	protected.Use(JWTMiddleware())
+	{
+		// 创建文章
+		protected.POST("/createArticle", createArticle)
 
-	// 更新文章
-	router.POST("/updateArticle/", func(c *gin.Context) {})
+		// 更新文章
+		protected.POST("/updateArticle", updateArticle)
 
-	// 删除文章
-	router.POST("/deleteArticle/", func(c *gin.Context) {})
+		// 删除文章
+		protected.POST("/deleteArticle", deleteArticle)
 
-	// 创建评论
+		// 创建评论
+		protected.POST("/createComment", createComment)
 
-	//
+		// 删除评论
+		protected.POST("/deleteComment", deleteComment)
+	}
 
 	router.Run()
+}
+
+func createComment(c *gin.Context) {
+	var comment model.Comment
+	if err := c.ShouldBindJSON(&comment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if comment.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "评论内容不能为空"})
+	}
+	// 校验待评论文章
+	var existPost model.Post
+	tx := db.DB.Where("id = ?", comment.PostID).First(&existPost)
+	if tx.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		return
+	}
+	comment.UserID = existPost.UserID
+	db.DB.Create(&comment)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "评论发表成功",
+	})
+}
+
+func deleteComment(c *gin.Context) {
+	var comment model.Comment
+	if err := c.ShouldBindJSON(&comment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// 校验待评论文章
+	var existComment model.Comment
+	tx := db.DB.Where("id = ?", comment.ID).First(&existComment)
+	if tx.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		return
+	}
+	db.DB.Delete(&comment)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "评论删除成功",
+	})
+}
+
+func deleteArticle(c *gin.Context) {
+	var post model.Post
+	if err := c.ShouldBindJSON(&post); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// 校验待评论文章
+	var existPost model.Post
+	tx := db.DB.Where("id = ? and user_id = ?", post.ID, c.MustGet("userID").(uint)).First(&existPost)
+	if tx.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		return
+	}
+	db.DB.Delete(&post)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "文章删除成功",
+	})
+}
+
+func updateArticle(c *gin.Context) {
+	var post model.Post
+	if err := c.ShouldBindJSON(&post); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 先检查post.ID是否有效
+	var existPost model.Post
+	tx := db.DB.Where("id = ? and user_id = ?", post.ID, c.MustGet("userID").(uint)).First(&existPost)
+	if tx.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		return
+	}
+
+	if post.Title == "" && post.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "标题或文章内容不能同时为空"})
+	}
+	post.UserID = c.MustGet("userID").(uint)
+	ctx := context.Background()
+	_, err := gorm.G[model.Post](db.DB).Where("id = ?", post.ID).Updates(ctx, model.Post{Title: post.Title, Content: post.Content})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "文章更新成功",
+	})
+}
+
+func createArticle(c *gin.Context) {
+	var post model.Post
+	if err := c.ShouldBindJSON(&post); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if post.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title is empty"})
+		return
+	}
+	if post.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content is empty"})
+		return
+	}
+	post.UserID = c.MustGet("userID").(uint)
+	db.DB.Create(&post)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "文章发表成功",
+	})
 }
 
 // 注册
@@ -136,7 +256,7 @@ func Login(c *gin.Context) {
 // 验证JWT令牌
 func validateToken(tokenString string) (*Claims, error) {
 	// 解析token
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return JWTKey, nil
 	})
 
@@ -155,7 +275,7 @@ func validateToken(tokenString string) (*Claims, error) {
 func JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从x-jwt-token头中获取token
-		authHeader := c.Request.Header.Get("x-jwt-token")
+		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
 			c.Abort()
