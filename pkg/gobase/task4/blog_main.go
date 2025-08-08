@@ -10,6 +10,7 @@ import (
 	"github.com/yixiu868/go-solidity/pkg/gobase/db"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"log"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -51,6 +52,12 @@ func main() {
 	// 登录
 	router.POST("/login", Login)
 
+	// 获取用户文章列表及详细信息
+	router.POST("/articles", articles)
+
+	// 获取某篇文章的所有评论
+	router.POST("/commentsByPostId", commentsByPostId)
+
 	protected := router.Group("/api")
 	protected.Use(JWTMiddleware())
 	{
@@ -73,20 +80,58 @@ func main() {
 	router.Run()
 }
 
+func commentsByPostId(c *gin.Context) {
+	var comment model.Comment
+	if err := c.ShouldBindJSON(&comment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("commentsByPostId error:", err.Error())
+		return
+	}
+
+	var comments []model.Comment
+	tx := db.DB.Where("post_id = ?", comment.PostID).Find(&comments)
+	if tx.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		log.Fatal("commentsByPostId search sql error:", tx.Error.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"data": comments,
+	})
+}
+
+func articles(c *gin.Context) {
+	// 校验待评论文章
+	var posts []model.Post
+	tx := db.DB.Preload("Comments").Find(&posts)
+	if tx.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		log.Fatal("articles search sql error:", tx.Error.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"data": posts,
+	})
+}
+
 func createComment(c *gin.Context) {
 	var comment model.Comment
 	if err := c.ShouldBindJSON(&comment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("createComment ShouldBindJSON error:", err.Error())
 		return
 	}
 	if comment.Content == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "评论内容不能为空"})
+		log.Fatal("评论内容不能为空 error")
+		return
 	}
 	// 校验待评论文章
 	var existPost model.Post
 	tx := db.DB.Where("id = ?", comment.PostID).First(&existPost)
 	if tx.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		log.Fatal("createComment validate PostID error:", tx.Error.Error())
 		return
 	}
 	comment.UserID = existPost.UserID
@@ -100,6 +145,7 @@ func deleteComment(c *gin.Context) {
 	var comment model.Comment
 	if err := c.ShouldBindJSON(&comment); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("deleteComment ShouldBindJSON error:", err.Error())
 		return
 	}
 	// 校验待评论文章
@@ -107,6 +153,7 @@ func deleteComment(c *gin.Context) {
 	tx := db.DB.Where("id = ?", comment.ID).First(&existComment)
 	if tx.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		log.Fatal("deleteComment validate ID error:", tx.Error.Error())
 		return
 	}
 	db.DB.Delete(&comment)
@@ -119,6 +166,7 @@ func deleteArticle(c *gin.Context) {
 	var post model.Post
 	if err := c.ShouldBindJSON(&post); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("deleteArticle ShouldBindJSON error:", err.Error())
 		return
 	}
 	// 校验待评论文章
@@ -126,6 +174,7 @@ func deleteArticle(c *gin.Context) {
 	tx := db.DB.Where("id = ? and user_id = ?", post.ID, c.MustGet("userID").(uint)).First(&existPost)
 	if tx.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		log.Fatal("deleteArticle validate param error:", tx.Error.Error())
 		return
 	}
 	db.DB.Delete(&post)
@@ -138,6 +187,7 @@ func updateArticle(c *gin.Context) {
 	var post model.Post
 	if err := c.ShouldBindJSON(&post); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("updateArticle ShouldBindJSON error:", err.Error())
 		return
 	}
 
@@ -146,6 +196,7 @@ func updateArticle(c *gin.Context) {
 	tx := db.DB.Where("id = ? and user_id = ?", post.ID, c.MustGet("userID").(uint)).First(&existPost)
 	if tx.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": tx.Error.Error()})
+		log.Fatal("updateArticle validate param error:", tx.Error.Error())
 		return
 	}
 
@@ -157,6 +208,7 @@ func updateArticle(c *gin.Context) {
 	_, err := gorm.G[model.Post](db.DB).Where("id = ?", post.ID).Updates(ctx, model.Post{Title: post.Title, Content: post.Content})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("updateArticle update error:", err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -168,14 +220,17 @@ func createArticle(c *gin.Context) {
 	var post model.Post
 	if err := c.ShouldBindJSON(&post); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("createArticle ShouldBindJSON error:", err.Error())
 		return
 	}
 	if post.Title == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "title is empty"})
+		log.Fatal("createArticle title is empty")
 		return
 	}
 	if post.Content == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "content is empty"})
+		log.Fatal("createArticle content is empty")
 		return
 	}
 	post.UserID = c.MustGet("userID").(uint)
@@ -190,18 +245,21 @@ func Register(c *gin.Context) {
 	var user model.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("Register ShouldBindJSON error:", err.Error())
 		return
 	}
 	// 加密密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		log.Fatal("Register Failed to hash password")
 		return
 	}
 	user.Password = string(hashedPassword)
 
 	if err := db.DB.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		log.Fatal("Register Failed to create user")
 		return
 	}
 
@@ -212,18 +270,21 @@ func Login(c *gin.Context) {
 	var user model.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Fatal("Login ShouldBindJSON error:", err.Error())
 		return
 	}
 
 	var storedUser model.User
 	if err := db.DB.Where("username = ?", user.Username).First(&storedUser).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		log.Fatal("Login Invalid username or password")
 		return
 	}
 
 	// 验证密码
 	if err := bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		log.Fatal("Login Invalid username or password")
 		return
 	}
 
@@ -245,6 +306,7 @@ func Login(c *gin.Context) {
 	tokenStr, err := token.SignedString(JWTKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		log.Fatal("Login Failed to generate token")
 		return
 	}
 	c.Header("x-jwt-token", tokenStr)
@@ -278,6 +340,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			log.Fatal("Authorization header is required")
 			c.Abort()
 			return
 		}
@@ -287,6 +350,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		_, err := fmt.Sscanf(authHeader, "Bearer %s", &tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization format"})
+			log.Fatal("Invalid Authorization format")
 			c.Abort()
 			return
 		}
@@ -295,6 +359,7 @@ func JWTMiddleware() gin.HandlerFunc {
 		claims, err := validateToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			log.Fatal("Invalid or expired token")
 			c.Abort()
 			return
 		}
